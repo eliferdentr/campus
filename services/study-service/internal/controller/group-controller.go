@@ -1,19 +1,30 @@
 package controller
 
-import "github.com/gin-gonic/gin"
+import (
+	"net/http"
 
-func CreateGroup (context *gin.Context) {
+	request "campus-project.com/study-service/internal/request"
+	"github.com/gin-gonic/gin"
+)
+
+func CreateGroupHandler (context *gin.Context) {
+	var req request.CreateGroupRequest
+	if err := context.ShouldBindJSON(&req); err != nil {
+		context.JSON(http.StatusBadRequest,  gin.H{"error": err.Error()})
+		return
+	}
+	
 
 }
 
-func InviteToGroup (context *gin.Context) {
+func InviteToGroupHandler (context *gin.Context) {
 	
 }
 
-func GetGroups (context *gin.Context) {
+func GetGroupsHandler (context *gin.Context) {
 	
 }
 
-func DeleteGroup (context *gin.Context) {
+func DeleteGroupHandler (context *gin.Context) {
 	
 }
