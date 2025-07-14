@@ -5,6 +5,7 @@ import (
 	"study-service/internal/service"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 )
 
 // createNoteRequest, CreateNote handler'ı için gelen isteğin gövdesini temsil eder.
@@ -17,12 +18,14 @@ type createNoteRequest struct {
 // NoteHandler, notlarla ilgili HTTP isteklerini yönetir.
 type NoteHandler struct {
 	noteService service.NoteService
+	logger zerolog.Logger
 }
 
 // NewNoteHandler, yeni bir NoteHandler örneği oluşturur.
-func NewNoteHandler(s service.NoteService) *NoteHandler {
+func NewNoteHandler(s service.NoteService, logger zerolog.Logger) *NoteHandler {
 	return &NoteHandler{
 		noteService: s,
+		logger: logger,
 	}
 }
 
@@ -46,6 +49,6 @@ func (h *NoteHandler) CreateNote(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create note"})
 		return
 	}
-
+	h.logger.Info().Msg("Note created successfully")
 	c.JSON(http.StatusCreated, note)
 }

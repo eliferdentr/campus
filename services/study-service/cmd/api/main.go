@@ -1,46 +1,27 @@
 package main
 
 import (
-	"context"
 	"log"
-	"study-service/internal/handler"
+	"study-service/internal/config"
+	"study-service/internal/logger"
 	"study-service/internal/repository"
-	"study-service/internal/service"
-
-	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
-	// 1. Konfigürasyon Yükleme (Placeholder)
-	// Normalde bu kısımda .env dosyasından veya ortam değişkenlerinden
-	// veritabanı bağlantı bilgisi gibi konfigürasyonlar okunur.
-	// dbURL := os.Getenv("DATABASE_URL")
-	dbURL := "postgres://user:password@localhost:5432/study_db" // Örnek bağlantı adresi
-
-	// 2. Veritabanı Bağlantısı (Placeholder)
-	// Gerçek bir uygulamada, uygulama kapanırken db.Close() çağrılmalıdır.
-	db, err := pgxpool.New(context.Background(), dbURL)
+	cfg, err := config.LoadConfig(".")
 	if err != nil {
-		log.Fatalf("Veritabanına bağlanılamadı: %v\n", err)
+		// Logger'ı başlatmak için gereken konfigürasyon yüklenemediği için
+		// standart log paketi ile hata basıp çıkıyoruz.
+		log.Fatalf("Error loading config: %v", err)
 	}
-	defer db.Close()
-	log.Println("Veritabanı bağlantısı başarılı.")
 
-	// 3. Katmanları Oluşturma (Dependency Injection)
-	noteRepo := repository.NewPostgresNoteRepository(db)
-	noteService := service.NewNoteService(noteRepo)
-	noteHandler := handler.NewNoteHandler(noteService)
+	logger := logger.New(cfg.Environment == "development")
+	logger.Info().Msg("Config loaded successfully")
 
-	// 4. Gin Router'ı Başlatma
-	router := gin.Default()
-
-	// 5. Rotaları Tanımlama
-	router.POST("/api/v1/notes", noteHandler.CreateNote)
-
-	// 6. Sunucuyu Başlatma
-	log.Println("Sunucu http://localhost:8080 adresinde başlatılıyor...")
-	if err := router.Run(":8080"); err != nil {
-		log.Fatalf("Sunucu başlatılamadı: %v", err)
+	dbPool, err := repository.NewConnection(cfg.DatabaseURL)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Failed to connect to database")
 	}
+	defer dbPool.Close()
+	logger.Info().Msg("Successfully connected to the database")
 }
