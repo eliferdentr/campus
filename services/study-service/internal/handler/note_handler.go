@@ -46,6 +46,7 @@ func (h *NoteHandler) CreateNote(c *gin.Context) {
 	note, err := h.noteService.Create(c.Request.Context(), userID, req.Title, req.Description, req.CourseCode)
 	if err != nil {
 		// Burada daha detaylı hata yönetimi yapılabilir (örn: service katmanından gelen hatanın türüne göre farklı status kodları dönmek)
+		h.logger.Error().Err(err).Msg("Failed to create note")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create note"})
 		return
 	}
