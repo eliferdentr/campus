@@ -1,6 +1,6 @@
 package com.backend.campus.model;
 
 public enum Role {
-    ADMIN,
-    STUDENT
+    ROLE_USER,
+    ROLE_ADMIN
 }

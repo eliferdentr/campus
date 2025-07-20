@@ -11,4 +11,12 @@ public class ObjectMapper {
     public ObjectMapper(ModelMapper modelMapper) {
         this.modelMapper = modelMapper;
     }
+
+    public <T> T map(Object source, Class<T> destinationType) {
+        return modelMapper.map(source, destinationType);
+    }
+
+    public void map(Object source, Object destination) {
+        modelMapper.map(source, destination);
+    }
 }
