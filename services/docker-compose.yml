@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  user-service:
+    build: ./user-service
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres-user
+
+  study-service:
+    build: ./study-service
+    ports:
+      - "8082:8080"
+
+  postgres-user:
+    image: postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: userdb
+    ports:
+      - "5432:5432"
