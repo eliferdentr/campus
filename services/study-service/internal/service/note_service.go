@@ -5,8 +5,6 @@ import (
 	"study-service/internal/domain"
 	"study-service/internal/repository"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // NoteService, notlarla ilgili iş mantığı operasyonlarını tanımlar.
@@ -26,19 +24,34 @@ func NewNoteService(repo repository.NoteRepository) NoteService {
 
 // Create, yeni bir not nesnesi oluşturur ve repository aracılığıyla kaydeder.
 func (s *noteService) Create(ctx context.Context, userID, title, description, courseCode string) (*domain.Note, error) {
+	// Description ve CourseCode alanları veritabanında NULL olabildiği için
+	// domain.Note struct'ında pointer (*string) olarak tanımlanmışlar.
+	// Gelen string boş ise nil, değilse string'in adresini atıyoruz.
+	var descPtr *string
+	if description != "" {
+		descPtr = &description
+	}
+
+	var courseCodePtr *string
+	if courseCode != "" {
+		courseCodePtr = &courseCode
+	}
+
 	note := &domain.Note{
-		ID:          uuid.NewString(),
-		Title:       title,
-		Description: description,
-		UserID:      userID,
-		CourseCode:  courseCode,
-		CreatedAt:   time.Now().UTC(),
+		// ID, repository katmanında veritabanı tarafından oluşturulur (RETURNING id).
+		// Bu yüzden service katmanında ID ataması yapmıyoruz.
+		Title:        title,
+		Description:  descPtr,
+		UserID:       userID,
+		CourseCode:   courseCodePtr,
+		CreatedAt:    time.Now().UTC(),
 		// FilePath ve UniversityID gibi alanlar daha sonraki adımlarda atanabilir.
 	}
 
-	if err := s.noteRepo.Save(ctx, note); err != nil {
+	createdID, err := s.noteRepo.Create(ctx, note)
+	if err != nil {
 		return nil, err
 	}
-
+	note.ID = createdID
 	return note, nil
 }
