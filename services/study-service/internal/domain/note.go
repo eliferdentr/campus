@@ -9,7 +9,7 @@ type Note struct {
 	ID            string     `json:"id" db:"id"`
 	Title         string     `json:"title" db:"title"`
 	Description   *string    `json:"description,omitempty" db:"description"` // Boş olabilir (nullable)
-	FilePath      string     `json:"filePath" db:"file_path"` // S3 veya MinIO'daki dosyanın yolu/anahtarı
+	FilePath      string     `json:"filePath" db:"file_path"`                // S3 veya MinIO'daki dosyanın yolu/anahtarı
 	UserID        string     `json:"userId" db:"user_id"`
 	UniversityID  string     `json:"universityId" db:"university_id"`
 	CourseCode    *string    `json:"courseCode,omitempty" db:"course_code"` // Boş olabilir (nullable)

@@ -8,9 +8,9 @@ import (
 // NoteRepository, not verileri üzerindeki operasyonlar için arayüzü tanımlar.
 type NoteRepository interface {
 	// Save, verilen notu veritabanına kaydeder.
-	Create(ctx context.Context, note *domain.Note) (string, error)
+	Create(ctx context.Context, note *domain.Note) (*domain.Note, error)
 	GetById(ctx context.Context, id string) (*domain.Note, error)
 	Delete(ctx context.Context, id string) error
-	Update(ctx context.Context, note *domain.Note) (string, error)
+	Update(ctx context.Context, note *domain.Note) (*domain.Note, error)
 	
 }
