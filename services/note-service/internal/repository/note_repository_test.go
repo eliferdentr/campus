@@ -1,4 +1,4 @@
-package repository_test
+package repository
 
 import (
 	"context"
@@ -6,8 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"study-service/internal/domain"
-	r "study-service/internal/repository"
+	"study-service/internal/domain" // Corrected import
 
 	"github.com/jackc/pgx/v5"
 	pgxmock "github.com/pashagolub/pgxmock/v3"
@@ -29,7 +28,7 @@ func TestPostgresNoteRepository_Create(t *testing.T) {
 	mock, err := pgxmock.NewPool()
 	require.NoError(t, err)
 	defer mock.Close()
-	repo := r.NewPostgresNoteRepository(mock)
+	repo := NewPostgresNoteRepository(mock)
 	expectedUUID := "test-uuid-123"
 
 	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO notes (title, description, file_path, user_id, university_id, course_code) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`)).
@@ -45,86 +44,86 @@ func TestPostgresNoteRepository_Create(t *testing.T) {
 }
 
 func TestPostgresNoteRepository_Update_Success(t *testing.T) {
-    mock, err := pgxmock.NewPool()
-    require.NoError(t, err)
-    defer mock.Close()
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
 
-    repo := r.NewPostgresNoteRepository(mock)
+	repo := NewPostgresNoteRepository(mock)
 
-    // Bu, bizim güncelleme için gönderdiğimiz KISMİ veri.
-    noteToUpdate := &domain.Note{
-        ID:    "test-uuid-123",
-        Title: "Eski Başlık",
-    }
-    
-    // GÜNCELLEME 1: Beklenen SQL sorgusunu metodun ürettiği gerçekçi sorguyla eşleştiriyoruz.
-    // 'updated_at' ve 'RETURNING *' kısımlarını ekliyoruz.
-    // Not: `RETURNING *` kullandığımız için, mock'un tüm kolonları döndürmesi gerekir.
-    expectedSQL := regexp.QuoteMeta(`UPDATE notes SET title = $1, updated_at = NOW() WHERE id = $2 RETURNING *`)
-    
-    // GÜNCELLEME 2: Mock'un döndüreceği tam nesneyi hazırlıyoruz.
-    // Bu, veritabanından dönecek olan güncellenmiş satırı temsil eder.
-    returnedNote := &domain.Note{
-        ID:          "test-uuid-123",
-        Title:       "Yeni Başlık", // Güncellenmiş alan
-        Description: func() *string { s := "Bu açıklama veritabanından geldi."; return &s }(), // Değişmeyen, mevcut alan
-        CreatedAt:   time.Now().Add(-1 * time.Hour), // Eski bir zaman
-        UpdatedAt:   time.Now(), // Yeni güncellenmiş zaman
-    }
+	// Bu, bizim güncelleme için gönderdiğimiz KISMİ veri.
+	noteToUpdate := &domain.Note{
+		ID:    "test-uuid-123",
+		Title: "Eski Başlık",
+	}
 
-    // GÜNCELLEME 3: Mock'un döndüreceği satırları tam nesneye göre hazırlıyoruz.
-    rows := pgxmock.NewRows([]string{
-        "id", "title", "description", "file_path", "user_id", "university_id", "course_code", 
-        "status", "download_count", "average_rating", "created_at", "updated_at", "deleted_at",
-    }).AddRow(
-        returnedNote.ID, returnedNote.Title, returnedNote.Description, returnedNote.FilePath, returnedNote.UserID, returnedNote.UniversityID,
-        returnedNote.CourseCode, returnedNote.Status, returnedNote.DownloadCount, returnedNote.AverageRating, returnedNote.CreatedAt, returnedNote.UpdatedAt, nil,
-    )
+	// GÜNCELLEME 1: Beklenen SQL sorgusunu metodun ürettiği gerçekçi sorguyla eşleştiriyoruz.
+	// 'updated_at' ve 'RETURNING *' kısımlarını ekliyoruz.
+	// Not: `RETURNING *` kullandığımız için, mock'un tüm kolonları döndürmesi gereki
+	expectedSQL := regexp.QuoteMeta(`UPDATE notes SET title = $1, updated_at = NOW() WHERE id = $2 RETURNING *`)
 
-    mock.ExpectQuery(expectedSQL).
-        WithArgs(noteToUpdate.Title, noteToUpdate.ID).
-        WillReturnRows(rows)
+	// GÜNCELLEME 2: Mock'un döndüreceği tam nesneyi hazırlıyoruz.
+	// Bu, veritabanından dönecek olan güncellenmiş satırı temsil ede
+	returnedNote := &domain.Note{
+		ID:          "test-uuid-123",
+		Title:       "Yeni Başlık",                                                            // Güncellenmiş alan
+		Description: func() *string { s := "Bu açıklama veritabanından geldi."; return &s }(), // Değişmeyen, mevcut alan
+		CreatedAt:   time.Now().Add(-1 * time.Hour),                                           // Eski bir zaman
+		UpdatedAt:   time.Now(),                                                               // Yeni güncellenmiş zaman
+	}
 
-    // GÜNCELLEME 4: Metodu çağırıp tam nesneyi yakalıyoruz.
-    updatedNote, err := repo.Update(context.Background(), noteToUpdate)
+	// GÜNCELLEME 3: Mock'un döndüreceği satırları tam nesneye göre hazırlıyoruz.
+	rows := pgxmock.NewRows([]string{
+		"id", "title", "description", "file_path", "user_id", "university_id", "course_code",
+		"status", "download_count", "average_rating", "created_at", "updated_at", "deleted_at",
+	}).AddRow(
+		returnedNote.ID, returnedNote.Title, returnedNote.Description, returnedNote.FilePath, returnedNote.UserID, returnedNote.UniversityID,
+		returnedNote.CourseCode, returnedNote.Status, returnedNote.DownloadCount, returnedNote.AverageRating, returnedNote.CreatedAt, returnedNote.UpdatedAt, nil,
+	)
 
-    // GÜNCELLEME 5: Sonuçları tam nesneye göre doğruluyoruz.
-    assert.NoError(t, err)
-    require.NotNil(t, updatedNote)
-    assert.Equal(t, returnedNote.ID, updatedNote.ID)
-    assert.Equal(t, "Yeni Başlık", updatedNote.Title) // Başlığın güncellendiğini doğrula
-    assert.NoError(t, mock.ExpectationsWereMet())
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(noteToUpdate.Title, noteToUpdate.ID).
+		WillReturnRows(rows)
+
+	// GÜNCELLEME 4: Metodu çağırıp tam nesneyi yakalıyoruz.
+	updatedNote, err := repo.Update(context.Background(), noteToUpdate)
+
+	// GÜNCELLEME 5: Sonuçları tam nesneye göre doğruluyoruz.
+	assert.NoError(t, err)
+	require.NotNil(t, updatedNote)
+	assert.Equal(t, returnedNote.ID, updatedNote.ID)
+	assert.Equal(t, "Yeni Başlık", updatedNote.Title) // Başlığın güncellendiğini doğrula
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestPostgresNoteRepository_Update_NotFound(t *testing.T) {
-    mock, err := pgxmock.NewPool()
-    require.NoError(t, err)
-    defer mock.Close()
+	mock, err := pgxmock.NewPool()
+	require.NoError(t, err)
+	defer mock.Close()
 
-    repo := r.NewPostgresNoteRepository(mock)
+	repo := NewPostgresNoteRepository(mock)
 
-    noteToUpdate := &domain.Note{
-        ID:    "yok-boyle-bir-uuid",
-        Title: "Yeni Başlık",
-    }
+	noteToUpdate := &domain.Note{
+		ID:    "yok-boyle-bir-uuid",
+		Title: "Yeni Başlık",
+	}
 
-    // GÜNCELLEME 1: Beklenen SQL sorgusunu güncelliyoruz.
-    expectedSQL := regexp.QuoteMeta(`UPDATE notes SET title = $1, updated_at = NOW() WHERE id = $2 RETURNING *`)
-    
-    mock.ExpectQuery(expectedSQL).
-        WithArgs(noteToUpdate.Title, noteToUpdate.ID).
-        WillReturnError(pgx.ErrNoRows) // Hata döndürme kısmı aynı kalıyor.
+	// GÜNCELLEME 1: Beklenen SQL sorgusunu güncelliyoruz.
+	expectedSQL := regexp.QuoteMeta(`UPDATE notes SET title = $1, updated_at = NOW() WHERE id = $2 RETURNING *`)
 
-    // GÜNCELLEME 2: Metodu çağırıp dönen (nil olmasını beklediğimiz) nesneyi yakalıyoruz.
-    updatedNote, err := repo.Update(context.Background(), noteToUpdate)
+	mock.ExpectQuery(expectedSQL).
+		WithArgs(noteToUpdate.Title, noteToUpdate.ID).
+		WillReturnError(pgx.ErrNoRows) // Hata döndürme kısmı aynı kalıyo
 
-    // Sonuçları kontrol et
-    assert.Error(t, err)
-    // GÜNCELLEME 3: Hata durumunda dönen nesnenin nil olduğunu doğruluyoruz.
-    assert.Nil(t, updatedNote) 
-    assert.ErrorIs(t, err, r.ErrNoteNotFound)
+	// GÜNCELLEME 2: Metodu çağırıp dönen (nil olmasını beklediğimiz) nesneyi yakalıyoruz.
+	updatedNote, err := repo.Update(context.Background(), noteToUpdate)
 
-    assert.NoError(t, mock.ExpectationsWereMet())
+	// Sonuçları kontrol et
+	assert.Error(t, err)
+	// GÜNCELLEME 3: Hata durumunda dönen nesnenin nil olduğunu doğruluyoruz.
+	assert.Nil(t, updatedNote)
+	assert.ErrorIs(t, err, ErrNoteNotFound)
+
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestPostgresNoteRepository_GetById_Success(t *testing.T) {
@@ -132,7 +131,7 @@ func TestPostgresNoteRepository_GetById_Success(t *testing.T) {
 	require.NoError(t, err)
 	defer mock.Close()
 
-	repo := r.NewPostgresNoteRepository(mock)
+	repo := NewPostgresNoteRepository(mock)
 
 	expectedNote := &domain.Note{
 		ID:           "test-uuid-123",
@@ -171,7 +170,7 @@ func TestPostgresNoteRepository_GetById_NotFound(t *testing.T) {
 	require.NoError(t, err)
 	defer mock.Close()
 
-	repo := r.NewPostgresNoteRepository(mock)
+	repo := NewPostgresNoteRepository(mock)
 
 	nonExistentID := "yok-boyle-bir-uuid"
 
@@ -189,7 +188,7 @@ func TestPostgresNoteRepository_GetById_NotFound(t *testing.T) {
 	assert.Nil(t, foundNote) // Not'un nil olmasını bekliyoruz
 
 	// Dönen hatanın bizim özel ErrNoteNotFound hatamız olduğunu doğruluyoruz.
-	assert.ErrorIs(t, err, r.ErrNoteNotFound)
+	assert.ErrorIs(t, err, ErrNoteNotFound)
 
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -199,7 +198,7 @@ func TestPostgresNoteRepository_Delete_NotFound(t *testing.T) {
 	require.NoError(t, err)
 	defer mock.Close()
 
-	repo := r.NewPostgresNoteRepository(mock)
+	repo := NewPostgresNoteRepository(mock)
 	idToDelete := "yok-boyle-bir-uuid"
 
 	// Metod Exec kullandığı için mock'a ExpectExec diyoruz.
@@ -212,8 +211,8 @@ func TestPostgresNoteRepository_Delete_NotFound(t *testing.T) {
 	err = repo.Delete(context.Background(), idToDelete)
 
 	// Sonuçları kontrol ediyoruz
-	assert.Error(t, err)                      // Hata bekliyoruz.
-	assert.ErrorIs(t, err, r.ErrNoteNotFound) // Özel 'NotFound' hatası olmalı.
+	assert.Error(t, err)                    // Hata bekliyoruz.
+	assert.ErrorIs(t, err, ErrNoteNotFound) // Özel 'NotFound' hatası olmalı.
 
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -223,7 +222,7 @@ func TestPostgresNoteRepository_Delete_Success(t *testing.T) {
 	require.NoError(t, err)
 	defer mock.Close()
 
-	repo := r.NewPostgresNoteRepository(mock)
+	repo := NewPostgresNoteRepository(mock)
 	idToDelete := "test-uuid-123"
 
 	// Metod Exec kullandığı için mock'a ExpectExec diyoruz.
